@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fundraiser Live</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #080810;
+  --surface: #0f0f1a;
+  --border: #1e1e32;
+  --accent: #ff3b5c;
+  --gold: #ffd166;
+  --green: #06d6a0;
+  --text: #ffffff;
+  --muted: #6b6b8a;
+  --glow: rgba(255, 59, 92, 0.4);
+  --glow2: rgba(255, 209, 102, 0.4);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,59,92,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,59,92,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+.bg-glow {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(255,59,92,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.stage {
+  position: relative; z-index: 1;
+  width: 100vw; height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  grid-template-rows: 1fr auto;
+  padding: 48px 48px 32px 64px;
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 40px;
+  padding-right: 48px;
+}
+
+.event-label {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.total-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.total-label {
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.total-amount {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(6rem, 14vw, 11rem);
+  line-height: 0.9;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  position: relative;
+  display: inline-block;
+}
+
+.total-amount.pulsing {
+  animation: totalPulse 0.7s ease-out;
+}
+
+@keyframes totalPulse {
+  0%   { text-shadow: none; transform: scale(1); }
+  35%  { text-shadow: 0 0 80px var(--glow), 0 0 160px var(--glow); transform: scale(1.025); }
+  100% { text-shadow: none; transform: scale(1); }
+}
+
+.total-glow-ring {
+  position: absolute;
+  inset: -24px;
+  border-radius: 12px;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, var(--glow) 0%, transparent 70%);
+}
+
+.total-glow-ring.active {
+  animation: glowFade 1.8s ease-out forwards;
+}
+
+@keyframes glowFade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.goal-line {
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  color: var(--muted);
+  font-weight: 400;
+  margin-top: 4px;
+}
+
+.goal-line strong { color: var(--text); font-weight: 700; }
+
+.progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.percent-badge {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.5rem, 5vw, 3.8rem);
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  line-height: 1;
+  transition: color 0.4s;
+}
+
+.percent-badge.over { color: var(--gold); }
+
+.remaining-text {
+  font-size: 1.1rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.bar-track {
+  width: 100%;
+  height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #c8003a, var(--accent), #ff7b92);
+  transition: width 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 24px var(--glow);
+  position: relative;
+}
+
+.bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 30%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12));
+  border-radius: 0 16px 16px 0;
+}
+
+.bar-fill.over {
+  background: linear-gradient(90deg, #c8800a, var(--gold), #ffe57a);
+  box-shadow: 0 0 24px var(--glow2);
+}
+
+.latest-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--accent);
+  border-radius: 10px;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88px;
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+
+.latest-block.highlight {
+  animation: latestPop 5s ease-out forwards;
+}
+
+@keyframes latestPop {
+  0%   { border-color: var(--gold); box-shadow: 0 0 48px rgba(255,209,102,0.35); }
+  70%  { border-color: var(--gold); box-shadow: 0 0 24px rgba(255,209,102,0.15); }
+  100% { border-color: var(--accent); box-shadow: none; }
+}
+
+.latest-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.latest-name {
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.latest-amount {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2rem, 3.5vw, 2.8rem);
+  color: var(--gold);
+  letter-spacing: 0.05em;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  flex-shrink: 0;
+}
+
+.dot.error {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: dotBlink 1.2s ease-in-out infinite;
+}
+
+@keyframes dotBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+.status-text { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+
+.right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-left: 24px;
+  border-left: 1px solid var(--border);
+  gap: 16px;
+}
+
+.thermo-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.thermo-container {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex: 1;
+  max-height: 520px;
+}
+
+.thermo-ticks {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 0 36px;
+  align-items: flex-end;
+}
+
+.tick {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tick::after {
+  content: '';
+  display: block;
+  width: 10px; height: 1px;
+  background: var(--border);
+}
+
+.thermo-tube-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.thermo-tube {
+  width: 52px;
+  flex: 1;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 26px 26px 0 0;
+  border-bottom: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.thermo-mercury {
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(180deg, #ff7b92, var(--accent), #8b0020);
+  transition: height 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.thermo-mercury::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 8px; right: 8px; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.15), transparent);
+  border-radius: 4px;
+}
+
+.thermo-mercury.over {
+  background: linear-gradient(180deg, #ffe57a, var(--gold), #8b5e00);
+}
+
+.thermo-bulb {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--border);
+  box-shadow: 0 0 24px var(--glow);
+  flex-shrink: 0;
+  transition: background 0.4s, box-shadow 0.4s;
+  position: relative;
+}
+
+.thermo-bulb::after {
+  content: '';
+  position: absolute;
+  top: 12px; left: 14px;
+  width: 18px; height: 18px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+}
+
+.thermo-bulb.over {
+  background: var(--gold);
+  box-shadow: 0 0 40px var(--glow2);
+}
+
+.thermo-pct {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  transition: color 0.4s;
+}
+
+.thermo-pct.over { color: var(--gold); }
+
+.milestone-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255,59,92,0.97), rgba(255,140,66,0.97));
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: 0.1em;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transform: translateY(-100%);
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.milestone-banner.show { transform: translateY(0); }
+
+.screen-glow {
+  position: fixed; inset: 0; z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 150px var(--accent);
+}
+
+.screen-glow.active {
+  animation: screenGlow 1.8s ease-out forwards;
+}
+
+@keyframes screenGlow {
+  0%   { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+#confetti-canvas {
+  position: fixed; inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.bottom-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="screen-glow" id="screen-glow"></div>
+<canvas id="confetti-canvas"></canvas>
+<div class="milestone-banner" id="milestone-banner"></div>
+
+<div class="stage">
+  <div class="left">
+    <div class="event-label">Live Fundraiser</div>
+    <div class="total-block">
+      <div class="total-label">Total Raised</div>
+      <div class="total-glow-ring" id="glow-ring"></div>
+      <div class="total-amount" id="total-amount">$0</div>
+      <div class="goal-line">Goal: <strong id="goal-display">$1,000</strong></div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-row">
+        <div class="percent-badge" id="percent-badge">0%</div>
+        <div class="remaining-text" id="remaining-text">$1,000 to go</div>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="bar-fill"></div>
+      </div>
+    </div>
+    <div class="latest-block" id="latest-block">
+      <div>
+        <div class="latest-label">Latest Donation</div>
+        <div class="latest-name" id="latest-name">Waiting for first donation...</div>
+      </div>
+      <div class="latest-amount" id="latest-amount"></div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="thermo-label">Progress</div>
+    <div class="thermo-container">
+      <div class="thermo-ticks">
+        <div class="tick">100%</div>
+        <div class="tick">75%</div>
+        <div class="tick">50%</div>
+        <div class="tick">25%</div>
+        <div class="tick">0%</div>
+      </div>
+      <div class="thermo-tube-wrap">
+        <div class="thermo-tube">
+          <div class="thermo-mercury" id="thermo-mercury"></div>
+        </div>
+        <div class="thermo-bulb" id="thermo-bulb"></div>
+      </div>
+    </div>
+    <div class="thermo-pct" id="thermo-pct">0%</div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="status-row">
+      <div class="dot" id="status-dot"></div>
+      <span class="status-text" id="status-text">Connecting...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const SPREADSHEET_ID = '1SG5EtxD7SgBpZCMykN0zFd0hbOBYdy3lkAzcgkybw4I';
+const SHEET_NAME     = '20260309 understudy Fundraiser';
+const GOAL           = 1000;
+const POLL_MS        = 4000;
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+const MILESTONES = [25, 50, 75, 100];
+
+let prevTotal      = null;
+let prevDonor      = null;
+let errorCount     = 0;
+let countUpRAF     = null;
+let milestonesSeen = new Set();
+
+const el = id => document.getElementById(id);
+
+function fmt(n, dec = 0) {
+  if (!isFinite(n)) return '$0';
+  return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+// ── COUNT UP
+function countUp(from, to, ms, onTick, onDone) {
+  if (countUpRAF) cancelAnimationFrame(countUpRAF);
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / ms, 1);
+    const e = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    onTick(from + (to - from) * e);
+    if (t < 1) countUpRAF = requestAnimationFrame(step);
+    else { onTick(to); onDone && onDone(); }
+  }
+  countUpRAF = requestAnimationFrame(step);
+}
+
+// ── CONFETTI
+let particles = [], confettiActive = false;
+
+function launchConfetti(n = 130) {
+  const cv = el('confetti-canvas');
+  cv.width = innerWidth; cv.height = innerHeight;
+  const ctx = cv.getContext('2d');
+  const colors = ['#ff3b5c','#ff8c42','#ffd166','#06d6a0','#fff','#c77dff'];
+  for (let i = 0; i < n; i++) {
+    particles.push({
+      x: Math.random() * cv.width,
+      y: -10 - Math.random() * 150,
+      r: 4 + Math.random() * 5,
+      c: colors[Math.floor(Math.random() * colors.length)],
+      vx: (Math.random() - 0.5) * 4,
+      vy: 2.5 + Math.random() * 3.5,
+      spin: (Math.random() - 0.5) * 0.3,
+      angle: Math.random() * Math.PI * 2,
+      life: 1
+    });
+  }
+  if (!confettiActive) drawConfetti(ctx, cv);
+}
+
+function drawConfetti(ctx, cv) {
+  confettiActive = true;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  particles = particles.filter(p => p.life > 0.01);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.angle += p.spin; p.life -= 0.007;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.c;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.angle);
+    ctx.fillRect(-p.r/2, -p.r/2, p.r, p.r * 0.5);
+    ctx.restore();
+  });
+  if (particles.length) requestAnimationFrame(() => drawConfetti(ctx, cv));
+  else { confettiActive = false; ctx.clearRect(0, 0, cv.width, cv.height); }
+}
+
+// ── MILESTONE
+function triggerMilestone(pct) {
+  const msgs = {
+    25:  '🎉 25% — Quarter of the way there!',
+    50:  '🔥 Halfway there — Keep it going!',
+    75:  '⚡ 75% — Almost at the goal!',
+    100: '🏆 Goal Reached — Thank you!'
+  };
+  const banner = el('milestone-banner');
+  banner.textContent = msgs[pct] || `🎉 ${pct}% Reached!`;
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 4500);
+
+  const sg = el('screen-glow');
+  sg.classList.remove('active');
+  void sg.offsetWidth;
+  sg.classList.add('active');
+
+  launchConfetti(pct === 100 ? 240 : 150);
+}
+
+// ── PARSE GVIZ
+function parseGviz(raw) {
+  const m = raw.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+  if (!m) throw new Error('Bad gviz response');
+  return JSON.parse(m[1]);
+}
+
+// ── EXTRACT DONATIONS from raw rows
+// Expects columns: Timestamp, Donor, Amount, Source, Status
+function extractDonations(gviz) {
+  const rows = gviz?.table?.rows;
+  if (!rows || !rows.length) return [];
+
+  const donations = [];
+  rows.forEach(row => {
+    if (!row || !row.c) return;
+    const amountCell = row.c[2]; // Column C = Amount
+    const donorCell  = row.c[1]; // Column B = Donor
+    if (!amountCell || amountCell.v === null) return;
+    const amount = parseFloat(amountCell.v);
+    const donor  = donorCell ? (donorCell.v || '') : '';
+    if (isFinite(amount) && amount > 0) {
+      donations.push({ amount, donor });
+    }
+  });
+  return donations;
+}
+
+// ── UPDATE UI
+function updateUI(donations) {
+  if (!donations.length) {
+    el('latest-name').textContent = 'Waiting for first donation...';
+    el('latest-amount').textContent = '';
+    setStatus(true, 'Connected — no donations yet');
+    return;
+  }
+
+  const total      = donations.reduce((sum, d) => sum + d.amount, 0);
+  const lastDonor  = donations[donations.length - 1].donor;
+  const lastAmount = donations[donations.length - 1].amount;
+
+  const pct       = Math.round((total / GOAL) * 100);
+  const pctCapped = Math.min(pct, 100);
+  const isOver    = pct >= 100;
+
+  // Percent + remaining
+  el('percent-badge').textContent  = pct + '%';
+  el('percent-badge').className    = 'percent-badge' + (isOver ? ' over' : '');
+  el('thermo-pct').textContent     = pct + '%';
+  el('thermo-pct').className       = 'thermo-pct' + (isOver ? ' over' : '');
+  el('remaining-text').textContent = isOver ? '🎉 Goal reached!' : fmt(GOAL - total) + ' to go';
+
+  // Bar + thermometer
+  el('bar-fill').style.width    = pctCapped + '%';
+  el('bar-fill').className      = 'bar-fill' + (isOver ? ' over' : '');
+  el('thermo-mercury').style.height = pctCapped + '%';
+  el('thermo-mercury').className    = 'thermo-mercury' + (isOver ? ' over' : '');
+  el('thermo-bulb').className       = 'thermo-bulb' + (isOver ? ' over' : '');
+
+  // Total — count up on increase
+  if (prevTotal !== null && total > prevTotal) {
+    countUp(prevTotal, total, 1200,
+      v => { el('total-amount').textContent = fmt(v); },
+      () => {
+        el('total-amount').classList.add('pulsing');
+        el('glow-ring').classList.add('active');
+        setTimeout(() => {
+          el('total-amount').classList.remove('pulsing');
+          el('glow-ring').classList.remove('active');
+        }, 1800);
+      }
+    );
+  } else if (prevTotal === null) {
+    el('total-amount').textContent = fmt(total);
+  }
+
+  // Milestones
+  if (prevTotal === null) {
+    // First load — seed silently so we don't retrigger past milestones
+    MILESTONES.forEach(m => { if (pct >= m) milestonesSeen.add(m); });
+  } else {
+    MILESTONES.forEach(m => {
+      if (pct >= m && !milestonesSeen.has(m)) {
+        milestonesSeen.add(m);
+        triggerMilestone(m);
+      }
+    });
+  }
+
+  prevTotal = total;
+
+  // Latest donation
+  if (lastDonor && lastDonor !== prevDonor) {
+    prevDonor = lastDonor;
+    el('latest-name').textContent  = lastDonor;
+    el('latest-amount').textContent = fmt(lastAmount, 2);
+    const lb = el('latest-block');
+    lb.classList.remove('highlight');
+    void lb.offsetWidth;
+    lb.classList.add('highlight');
+  }
+
+  setStatus(true, 'Live · ' + new Date().toLocaleTimeString());
+}
+
+function setStatus(ok, msg) {
+  el('status-dot').className    = 'dot' + (ok ? '' : ' error');
+  el('status-text').textContent = msg;
+}
+
+// ── FETCH
+async function fetchData() {
+  try {
+    const res = await fetch(GVIZ_URL + '&_=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const donations = extractDonations(parseGviz(await res.text()));
+    errorCount = 0;
+    updateUI(donations);
+  } catch(e) {
+    errorCount++;
+    console.warn('Fetch error:', e.message);
+    setStatus(false, errorCount >= 3 ? 'Disconnected — retrying...' : 'Fetch failed — retrying');
+  }
+}
+
+fetchData();
+setInterval(fetchData, POLL_MS);
+
+window.addEventListener('resize', () => {
+  if (confettiActive) {
+    el('confetti-canvas').width  = innerWidth;
+    el('confetti-canvas').height = innerHeight;
+  }
+});
+</script>
+</body>
+</html>
