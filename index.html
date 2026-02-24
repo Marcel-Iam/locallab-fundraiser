@@ -666,18 +666,23 @@ function updateUI(donations) {
   el('thermo-bulb').className       = 'thermo-bulb' + (isOver ? ' over' : '');
 
   // Total — count up on increase
-  if (prevTotal !== null && total > prevTotal) {
-    countUp(prevTotal, total, 1200,
-      v => { el('total-amount').textContent = fmt(v); },
-      () => {
-        el('total-amount').classList.add('pulsing');
-        el('glow-ring').classList.add('active');
-        setTimeout(() => {
-          el('total-amount').classList.remove('pulsing');
-          el('glow-ring').classList.remove('active');
-        }, 1800);
-      }
-    );
+if (prevTotal !== null && total !== prevTotal) {
+    if (total > prevTotal) {
+      countUp(prevTotal, total, 1200,
+        v => { el('total-amount').textContent = fmt(v); },
+        () => {
+          el('total-amount').classList.add('pulsing');
+          el('glow-ring').classList.add('active');
+          setTimeout(() => {
+            el('total-amount').classList.remove('pulsing');
+            el('glow-ring').classList.remove('active');
+          }, 1800);
+        }
+      );
+    } else {
+      // Decrease — update immediately, no animation
+      el('total-amount').textContent = fmt(total);
+    }
   } else if (prevTotal === null) {
     el('total-amount').textContent = fmt(total);
   }
@@ -743,3 +748,4 @@ window.addEventListener('resize', () => {
 </script>
 </body>
 </html>
+
