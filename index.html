@@ -64,19 +64,61 @@ html, body {
   flex-shrink: 0;
 }
 
-.latest-label {
-  font-size: 0.72rem;
+/* bottom block: history stack + latest donation together */
+.donation-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.donation-section-label {
+  font-size: 0.68rem;
   font-weight: 500;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.history-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.history-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  opacity: 0;
+  animation: fadeUp 0.4s ease-out forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.history-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
   color: var(--muted2);
-  margin-bottom: 10px;
+  line-height: 1;
+}
+
+.history-amt {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
 .latest-block {
   border-left: 2px solid var(--yellow);
   padding-left: 18px;
-  min-height: 60px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -243,9 +285,9 @@ html, body {
 
 /* outer casing — gives the rounded glass look */
 .thermo-tube-outer {
-  width: 52px;
+  width: 90px;
   flex: 1;
-  border-radius: 26px 26px 0 0;
+  border-radius: 45px 45px 0 0;
   background: #1a1a1a;
   border: 2px solid #333;
   border-bottom: none;
@@ -259,9 +301,9 @@ html, body {
 /* inner channel that mercury fills */
 .thermo-tube-inner {
   position: absolute;
-  inset: 5px 14px 0;
+  inset: 8px 22px 0;
   background: #0e0e0e;
-  border-radius: 8px 8px 0 0;
+  border-radius: 14px 14px 0 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -293,8 +335,8 @@ html, body {
 .thermo-tube-outer::after {
   content: '';
   position: absolute;
-  top: 10px; left: 6px;
-  width: 5px;
+  top: 10px; left: 9px;
+  width: 8px;
   bottom: 0;
   background: linear-gradient(180deg, rgba(255,255,255,0.12), transparent 60%);
   border-radius: 3px;
@@ -328,7 +370,7 @@ html, body {
 
 /* outer ring */
 .thermo-bulb-outer {
-  width: 76px; height: 76px;
+  width: 110px; height: 110px;
   border-radius: 50%;
   background: #1a1a1a;
   border: 2px solid #333;
@@ -340,7 +382,7 @@ html, body {
 
 /* inner filled circle */
 .thermo-bulb-inner {
-  width: 58px; height: 58px;
+  width: 86px; height: 86px;
   border-radius: 50%;
   background: radial-gradient(circle at 36% 36%,
     #ffe8a0 0%,
@@ -354,8 +396,8 @@ html, body {
 .thermo-bulb-inner::after {
   content: '';
   position: absolute;
-  top: 10px; left: 12px;
-  width: 14px; height: 14px;
+  top: 14px; left: 18px;
+  width: 20px; height: 20px;
   border-radius: 50%;
   background: rgba(255,255,255,0.28);
 }
@@ -464,13 +506,16 @@ html, body {
 
 <div class="stage">
 
-  <!-- LEFT: event label + latest donation -->
+  <!-- LEFT: event label top, donation stack bottom -->
   <div class="left">
     <div class="event-label">Live Fundraiser</div>
-    <div class="latest-label">Latest Donation</div>
-    <div class="latest-block" id="latest-block">
-      <div class="latest-name" id="latest-name">Waiting for first donation...</div>
-      <div class="latest-amt" id="latest-amt"></div>
+    <div class="donation-stack">
+      <div class="donation-section-label">Donations</div>
+      <div class="history-feed" id="history-feed"></div>
+      <div class="latest-block" id="latest-block">
+        <div class="latest-name" id="latest-name">Waiting for first donation...</div>
+        <div class="latest-amt" id="latest-amt"></div>
+      </div>
     </div>
   </div>
 
@@ -541,7 +586,7 @@ const POLL_MS        = 4000;
 const GVIZ_URL   = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
 const MILESTONES = [25, 50, 75, 100];
 
-let prevTotal = null, prevDonor = null, errorCount = 0;
+let prevTotal = null, prevDonorCount = -1, errorCount = 0;
 let rafHandle = null, milestonesSeen = new Set();
 
 const el = id => document.getElementById(id);
@@ -640,6 +685,8 @@ function updateUI(donations) {
   if (!donations.length) {
     el('latest-name').textContent = 'Waiting for first donation...';
     el('latest-amt').textContent = '';
+    el('history-feed').innerHTML = '';
+    prevDonorCount = 0;
     setStatus(true, 'Connected · waiting for donations');
     return;
   }
@@ -680,13 +727,24 @@ function updateUI(donations) {
   }
   prevTotal = total;
 
-  // latest donor
-  if (last.donor && last.donor !== prevDonor) {
-    prevDonor = last.donor;
+  // donation feed — track by count so any new row triggers an update
+  if (donations.length !== prevDonorCount) {
+    prevDonorCount = donations.length;
+
+    // latest (bottom, highlighted)
     el('latest-name').textContent = last.donor || 'Anonymous';
     el('latest-amt').textContent  = fmt(last.amount, 2);
     const lb = el('latest-block');
     lb.classList.remove('flash'); void lb.offsetWidth; lb.classList.add('flash');
+
+    // history: up to 5 rows above latest, most recent first, subtle
+    const history = donations.slice(-6, -1).reverse();
+    const hf = el('history-feed');
+    hf.innerHTML = history.map((d, i) => `
+      <div class="history-item" style="animation-delay:${i * 0.04}s">
+        <span class="history-name">${d.donor || 'Anonymous'}</span>
+        <span class="history-amt">${fmt(d.amount, 2)}</span>
+      </div>`).join('');
   }
 
   setStatus(true, 'Live · ' + new Date().toLocaleTimeString());
