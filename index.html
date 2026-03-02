@@ -89,15 +89,22 @@ html, body {
 
 .history-item {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  flex-direction: column;
+  gap: 1px;
   opacity: 0;
   animation: fadeUp 0.4s ease-out forwards;
+  animation-fill-mode: forwards;
+}
+
+.history-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: var(--final-opacity, 0.55); transform: translateY(0); }
 }
 
 .history-name {
@@ -114,6 +121,14 @@ html, body {
   color: var(--muted);
   letter-spacing: 0.04em;
   flex-shrink: 0;
+}
+
+.history-time {
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  margin-top: 1px;
 }
 
 .latest-block {
@@ -145,6 +160,14 @@ html, body {
   color: var(--yellow);
   margin-top: 4px;
   letter-spacing: 0.05em;
+}
+
+.latest-time {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--muted2);
+  letter-spacing: 0.03em;
+  margin-top: 3px;
 }
 
 /* ─── CENTER ─── */
@@ -515,6 +538,7 @@ html, body {
       <div class="latest-block" id="latest-block">
         <div class="latest-name" id="latest-name">Waiting for first donation...</div>
         <div class="latest-amt" id="latest-amt"></div>
+        <div class="latest-time" id="latest-time"></div>
       </div>
     </div>
   </div>
@@ -673,10 +697,16 @@ function extractDonations(gviz) {
   if (!rows?.length) return [];
   return rows.reduce((acc, row) => {
     if (!row?.c) return acc;
-    const amtCell = row.c[2], donorCell = row.c[1];
+    const amtCell = row.c[2], donorCell = row.c[1], tsCell = row.c[0];
     if (!amtCell || amtCell.v === null) return acc;
     const amount = parseFloat(amtCell.v);
-    if (isFinite(amount) && amount > 0) acc.push({ amount, donor: donorCell?.v || '' });
+    if (isFinite(amount) && amount > 0) {
+      const ts = tsCell?.v ? new Date(tsCell.v) : null;
+      const time = ts && !isNaN(ts)
+        ? ts.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+        : '';
+      acc.push({ amount, donor: donorCell?.v || '', time });
+    }
     return acc;
   }, []);
 }
@@ -734,17 +764,23 @@ function updateUI(donations) {
     // latest (bottom, highlighted)
     el('latest-name').textContent = last.donor || 'Anonymous';
     el('latest-amt').textContent  = fmt(last.amount, 2);
+    el('latest-time').textContent = last.time || '';
     const lb = el('latest-block');
     lb.classList.remove('flash'); void lb.offsetWidth; lb.classList.add('flash');
 
-    // history: up to 5 rows above latest, most recent first, subtle
-    const history = donations.slice(-6, -1).reverse();
+    // history: oldest top → newest bottom, just above latest
+    const history = donations.slice(-6, -1);
     const hf = el('history-feed');
-    hf.innerHTML = history.map((d, i) => `
-      <div class="history-item" style="animation-delay:${i * 0.04}s">
-        <span class="history-name">${d.donor || 'Anonymous'}</span>
-        <span class="history-amt">${fmt(d.amount, 2)}</span>
-      </div>`).join('');
+    hf.innerHTML = history.map((d, i) => {
+      const opacity = 0.25 + (i / Math.max(history.length - 1, 1)) * 0.45;
+      return '<div class="history-item" style="--final-opacity:' + opacity + ';animation-delay:' + (i * 0.04) + 's">'
+        + '<div class="history-row">'
+        + '<span class="history-name">' + (d.donor || 'Anonymous') + '</span>'
+        + '<span class="history-amt">' + fmt(d.amount, 2) + '</span>'
+        + '</div>'
+        + (d.time ? '<div class="history-time">' + d.time + '</div>' : '')
+        + '</div>';
+    }).join('');
   }
 
   setStatus(true, 'Live · ' + new Date().toLocaleTimeString());
