@@ -83,14 +83,14 @@ html, body {
 .history-feed {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 10px;  /* was 6px */
+  margin-bottom: 20px;  /* was 16px */
 }
 
 .history-item {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;  /* was 1px */
   opacity: 0;
   animation: fadeUp 0.4s ease-out forwards;
   animation-fill-mode: forwards;
@@ -109,14 +109,14 @@ html, body {
 
 .history-name {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.55rem;  /* was 1.15rem */
   letter-spacing: 0.04em;
   color: var(--muted2);
   line-height: 1;
 }
 
 .history-amt {
-  font-size: 0.78rem;
+  font-size: 1rem;  /* was 0.78rem */
   font-weight: 500;
   color: var(--muted);
   letter-spacing: 0.04em;
@@ -124,11 +124,11 @@ html, body {
 }
 
 .history-time {
-  font-size: 0.65rem;
+  font-size: 0.78rem;  /* was 0.65rem */
   font-weight: 400;
   color: var(--muted);
   letter-spacing: 0.03em;
-  margin-top: 1px;
+  margin-top: 2px;  /* was 1px */
 }
 
 .latest-block {
@@ -810,4 +810,5 @@ window.addEventListener('resize', () => {
 </script>
 </body>
 </html>
+
 
