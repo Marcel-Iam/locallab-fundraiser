@@ -672,6 +672,27 @@ function triggerMilestone(pct) {
   launchConfetti(pct === 100 ? 280 : 160);
 }
 
+let fireworksInterval = null;
+
+function startContinuousFireworks() {
+  if (fireworksInterval) return; // Already running
+  
+  // Launch fireworks every 2 seconds
+  fireworksInterval = setInterval(() => {
+    launchConfetti(120);
+  }, 2000);
+  
+  // Initial burst
+  launchConfetti(200);
+}
+
+function stopContinuousFireworks() {
+  if (fireworksInterval) {
+    clearInterval(fireworksInterval);
+    fireworksInterval = null;
+  }
+}
+  
 function updateTicks(pct) {
   // left ticks — percent based
   document.querySelectorAll('.ticks-left .tick').forEach(t => {
@@ -749,9 +770,14 @@ function updateUI(donations) {
   // milestones
   if (prevTotal === null) {
     MILESTONES.forEach(m => { if (pct >= m) milestonesSeen.add(m); });
+    if (pct >= 100) startContinuousFireworks();
   } else {
     MILESTONES.forEach(m => {
-      if (pct >= m && !milestonesSeen.has(m)) { milestonesSeen.add(m); triggerMilestone(m); }
+      if (pct >= m && !milestonesSeen.has(m)) { 
+        milestonesSeen.add(m); 
+        triggerMilestone(m);
+        if (m === 100) startContinuousFireworks();
+      }
     });
   }
   prevTotal = total;
@@ -810,6 +836,7 @@ window.addEventListener('resize', () => {
 </script>
 </body>
 </html>
+
 
 
 
