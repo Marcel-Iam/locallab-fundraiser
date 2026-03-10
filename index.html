@@ -133,7 +133,7 @@ html, body {
 
 .latest-block {
   border-left: 2px solid var(--yellow);
-  padding-left: 18px;
+  padding-left: 22px;  /* was 18px */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -148,26 +148,26 @@ html, body {
 
 .latest-name {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-size: clamp(2.4rem, 4vw, 3.2rem);  /* was clamp(1.8rem, 3.5vw, 2.6rem) */
   letter-spacing: 0.04em;
   color: var(--white);
   line-height: 1;
 }
 
 .latest-amt {
-  font-size: 1rem;
+  font-size: 1.3rem;  /* was 1rem */
   font-weight: 500;
   color: var(--yellow);
-  margin-top: 4px;
+  margin-top: 6px;  /* was 4px */
   letter-spacing: 0.05em;
 }
 
 .latest-time {
-  font-size: 0.72rem;
+  font-size: 0.85rem;  /* was 0.72rem */
   font-weight: 400;
   color: var(--muted2);
   letter-spacing: 0.03em;
-  margin-top: 3px;
+  margin-top: 4px;  /* was 3px */
 }
 
 /* ─── CENTER ─── */
@@ -810,5 +810,6 @@ window.addEventListener('resize', () => {
 </script>
 </body>
 </html>
+
 
 
