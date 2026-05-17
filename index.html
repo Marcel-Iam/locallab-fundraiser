@@ -52,6 +52,41 @@ html, body {
   border-right: 1px solid var(--border);
 }
 
+  .event-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.editable-title {
+  max-width: 100%;
+  min-width: 220px;
+  min-height: 1.1em;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.8rem, 5vw, 5rem);
+  line-height: 0.95;
+  letter-spacing: 0.04em;
+  color: var(--white);
+  outline: none;
+  cursor: text;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+}
+
+.editable-title:hover {
+  border-bottom-color: rgba(255, 209, 102, 0.35);
+}
+
+.editable-title:focus {
+  color: var(--yellow);
+  border-bottom-color: var(--yellow);
+}
+
+.editable-title:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+}
 .event-label {
   font-size: 0.75rem;
   font-weight: 500;
@@ -777,7 +812,19 @@ html, body {
 
   <!-- LEFT: event label top, donation stack bottom -->
   <div class="left">
-    <div class="event-label">Live Fundraiser</div>
+    <div class="event-title-wrap">
+  <div class="event-label">Live Fundraiser</div>
+
+  <div
+    class="editable-title"
+    id="editable-title"
+    contenteditable="true"
+    spellcheck="false"
+    data-placeholder="Click to add title"
+  >
+    Understudy Fundraiser
+  </div>
+</div>
 
     <div class="donation-stack">
       <div class="donation-section-label">Donations</div>
@@ -1281,6 +1328,24 @@ window.addEventListener('resize', () => {
   cv.height = innerHeight;
 });
 
+  const editableTitle = el('editable-title');
+
+const savedTitle = localStorage.getItem('fundraiserDisplayTitle');
+
+if (savedTitle !== null) {
+  editableTitle.textContent = savedTitle;
+}
+
+editableTitle.addEventListener('input', () => {
+  localStorage.setItem('fundraiserDisplayTitle', editableTitle.textContent.trim());
+});
+
+editableTitle.addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    editableTitle.blur();
+  }
+});
 fetchDonations();
 setInterval(fetchDonations, POLL_MS);
 </script>
