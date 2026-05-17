@@ -1061,6 +1061,8 @@ function updateLatest(donations, changed) {
 }
 
 function updateDisplay(donations) {
+  donations = Array.isArray(donations) ? donations : [];
+
   const total = donations.reduce((sum, d) => sum + d.amount, 0);
   const pct = GOAL > 0 ? Math.min((total / GOAL) * 100, 100) : 0;
 
@@ -1085,9 +1087,21 @@ function updateDisplay(donations) {
     bump(el('total-amount'));
     bump(el('thermo-pct'));
     flashScreen();
+  } else {
+    el('total-amount').textContent = fmt(total);
   }
 
-  checkMilestones(pct);
+  if (donations.length === 0) {
+    el('history-feed').innerHTML = '';
+    el('latest-name').textContent = 'Waiting for first donation...';
+    el('latest-amt').textContent = '';
+    el('latest-time').textContent = '';
+
+    // Reset milestones too, so the display can be reused cleanly.
+    milestonesSeen.clear();
+  } else {
+    checkMilestones(pct);
+  }
 
   prevTotal = total;
   prevDonorCount = donations.length;
@@ -1209,8 +1223,18 @@ function launchConfetti(n) {
 /* ─── DATA POLLING ─── */
 async function fetchDonations() {
   try {
-    const res = await fetch(`${GVIZ_URL}&cacheBust=${Date.now()}`, {
-      cache: 'no-store'
+    const freshUrl =
+      `${GVIZ_URL}` +
+      `&tq=${encodeURIComponent('select *')}` +
+      `&cacheBust=${Date.now()}`;
+
+    const res = await fetch(freshUrl, {
+      method: 'GET',
+      cache: 'reload',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     });
 
     if (!res.ok) {
@@ -1218,11 +1242,23 @@ async function fetchDonations() {
     }
 
     const text = await res.text();
-    const donations = parseGviz(text);
+
+    let donations = [];
+
+    try {
+      donations = parseGviz(text);
+    } catch (parseErr) {
+      console.error('GViz parse failed:', parseErr);
+
+      // If Google returns an empty/weird response after the sheet is cleared,
+      // reset the display instead of leaving the previous total on screen.
+      donations = [];
+    }
 
     updateDisplay(donations);
 
     errorCount = 0;
+
     setStatus(`Live • Updated ${new Date().toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit'
